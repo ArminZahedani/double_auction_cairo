@@ -51,14 +51,28 @@ mod Orderbook {
         sells_agg::write(price, new_quantity);
     }
 
+    //Retrieve the buy at the price that was made previously, and cancel it by setting it to 0 again.
     #[external]
     fn cancel_buy(price: u64) {
+        let sender = get_caller_address();
+        
+        let quantity = buy_orders::read((sender, price));
+        let quantity_agg = buys_agg::read(price);
+
+        buys_agg::write(price, quantity_agg - quantity);
+        buy_orders::write((sender, price), 0);
 
     }
 
     #[external]
     fn cancel_sell(price: u64) {
+        let sender = get_caller_address();
+        
+        let quantity = sell_orders::read((sender, price));
+        let quantity_agg = sells_agg::read(price);
 
+        sells_agg::write(price, quantity_agg - quantity);
+        sell_orders::write((sender, price), 0);
     }
 
 
@@ -66,15 +80,15 @@ mod Orderbook {
     #[external]
     fn settle() {
         let mut i: u64 = 0;
-        loop {
-            let result: bool = buys_agg::read(i) >= sells_agg::read(i);
-            if result {
+        let mcp = loop {
+            let mcp_found: bool = buys_agg::read(i) >= sells_agg::read(i);
+            if mcp_found {
                 break i;
             }
             i += 1;
         };
-        let quantity = sells_agg::read(i);
-        announce_price(i, quantity);
+        let quantity = sells_agg::read(mcp);
+        announce_price(mcp, quantity);
     }
 }
 
@@ -93,18 +107,33 @@ mod tests{
 
         Orderbook::submit_buy(1, 50);
 
-        assert(Orderbook::view_buy_orders_at(1) == 50, 'Not equal');
+        assert(Orderbook::view_buy_orders_at(1) == 50, 'Submission of buy failed');
     }
 
     #[test]
     #[available_gas(200000000)]
-    #[should_panic(expected:('Not equal',))]
+    #[should_panic(expected:('Submission of buy failed',))]
         fn test_buy_submittable_fail() {
         let account = contract_address_const::<1>();
         set_caller_address(account);
 
         Orderbook::submit_buy(5, 50);
 
-        assert(Orderbook::view_buy_orders_at(5) == 49, 'Not equal');
+        assert(Orderbook::view_buy_orders_at(5) == 49, 'Submission of buy failed');
+    }
+
+    #[test]
+    #[available_gas(200000000)]
+    fn test_buy_canceable() {
+        let account = contract_address_const::<1>();
+        set_caller_address(account);
+
+        Orderbook::submit_buy(1, 50);
+
+        assert(Orderbook::view_buy_orders_at(1) == 50, 'Submission of buy failed');
+
+        Orderbook::cancel_buy(1);
+
+        assert(Orderbook::view_buy_orders_at(1) == 0, 'Cancel of buy failed');
     }
 }
