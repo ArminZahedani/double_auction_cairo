@@ -17,6 +17,7 @@ mod Orderbook {
     #[storage]
     struct Storage {
         max_price: u64,
+        settler: ContractAddress,
         buys_agg: LegacyMap::<u64, u64>,
         sells_agg: LegacyMap::<u64, u64>,
         buy_orders: LegacyMap::<(ContractAddress, u64),
@@ -26,8 +27,9 @@ mod Orderbook {
     }
 
     #[constructor]
-    fn constructor(_max_price: u64) {
+    fn constructor(_max_price: u64, _settler: ContractAddress) {
         max_price::write(_max_price);
+        settler::write(_settler);
     }
 
     #[view]
@@ -166,6 +168,9 @@ mod Orderbook {
     //currently portrayed as function, should run periodically
     #[external]
     fn settle() -> QuantityPricePair {
+        let caller = get_caller_address();
+        assert(caller == settler::read(), 'Incorrect caller');
+
         let mut i: u64 = 0;
         let mcp = loop {
             let mcp_found: bool = buys_agg::read(i) <= sells_agg::read(i);
@@ -196,9 +201,9 @@ mod tests {
     #[test]
     #[available_gas(200000000)]
     fn test_buy_submittable() {
-        Orderbook::constructor(5);
-        let account = contract_address_const::<1>();
-        set_caller_address(account);
+        let settler = contract_address_const::<1>();
+        Orderbook::constructor(5, settler);
+        set_caller_address(settler);
 
         let mut order = ArrayTrait::new();
         order.append(Orderbook::QuantityPricePair { quantity: 150, price: 1 });
@@ -218,9 +223,9 @@ mod tests {
     #[available_gas(200000000)]
     #[should_panic(expected: ('Submission of buy failed', ))]
     fn test_buy_submittable_fail() {
-        Orderbook::constructor(5);
-        let account = contract_address_const::<1>();
-        set_caller_address(account);
+        let settler = contract_address_const::<1>();
+        Orderbook::constructor(5, settler);
+        set_caller_address(settler);
 
         let mut order = ArrayTrait::new();
         order.append(Orderbook::QuantityPricePair { quantity: 50, price: 5 });
@@ -233,9 +238,9 @@ mod tests {
     #[test]
     #[available_gas(2000000000)]
     fn settle_test() {
-        Orderbook::constructor(5);
-        let account = contract_address_const::<1>();
-        set_caller_address(account);
+        let settler = contract_address_const::<1>();
+        Orderbook::constructor(5, settler);
+        set_caller_address(settler);
 
         let mut order = ArrayTrait::new();
         order.append(Orderbook::QuantityPricePair { quantity: 100, price: 1 });
@@ -270,5 +275,16 @@ mod tests {
         let expected_result = Orderbook::QuantityPricePair { quantity: 20, price: 3 };
 
         assert(result == expected_result, 'Wrong MCP');
+    }
+    #[test]
+    #[available_gas(20000000)]
+    #[should_panic(expected:('Incorrect caller', ))]
+    fn settle_incorrect_caller() {
+        let settler = contract_address_const::<1>();
+        Orderbook::constructor(5, settler);
+        let caller = contract_address_const::<3>();
+        set_caller_address(caller);
+
+        Orderbook::settle();
     }
 }
