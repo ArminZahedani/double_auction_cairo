@@ -201,13 +201,13 @@ mod tests {
         set_caller_address(account);
 
         let mut order = ArrayTrait::new();
-        order.append(Orderbook::QuantityPricePair { quantity: 150, price: 0 });
+        order.append(Orderbook::QuantityPricePair { quantity: 150, price: 1 });
         order.append(Orderbook::QuantityPricePair { quantity: 100, price: 3 });
         order.append(Orderbook::QuantityPricePair { quantity: 50, price: 5 });
 
         Orderbook::submit_buy(order);
         assert(Orderbook::view_buy_orders_at(0) == 150, 'Submission of buy failed1');
-        assert(Orderbook::view_buy_orders_at(1) == 100, 'Submission of buy failed2');
+        assert(Orderbook::view_buy_orders_at(1) == 150, 'Submission of buy failed2');
         assert(Orderbook::view_buy_orders_at(2) == 100, 'Submission of buy failed3');
         assert(Orderbook::view_buy_orders_at(3) == 100, 'Submission of buy failed4');
         assert(Orderbook::view_buy_orders_at(4) == 50, 'Submission of buy failed5');
@@ -238,14 +238,14 @@ mod tests {
         set_caller_address(account);
 
         let mut order = ArrayTrait::new();
-        order.append(Orderbook::QuantityPricePair { quantity: 100, price: 0 });
+        order.append(Orderbook::QuantityPricePair { quantity: 100, price: 1 });
         order.append(Orderbook::QuantityPricePair { quantity: 50, price: 3 });
         order.append(Orderbook::QuantityPricePair { quantity: 10, price: 5 });
 
         Orderbook::submit_buy(order);
 
-        assert(Orderbook::view_buy_orders_at(0) == 100, 'Submission of buy failed12');
-        assert(Orderbook::view_buy_orders_at(1) == 50, 'Submission of buy failed2');
+        assert(Orderbook::view_buy_orders_at(0) == 100, 'Submission of buy failed1');
+        assert(Orderbook::view_buy_orders_at(1) == 100, 'Submission of buy failed2');
         assert(Orderbook::view_buy_orders_at(2) == 50, 'Submission of buy failed3');
         assert(Orderbook::view_buy_orders_at(3) == 50, 'Submission of buy failed4');
         assert(Orderbook::view_buy_orders_at(4) == 10, 'Submission of buy failed5');
@@ -254,7 +254,7 @@ mod tests {
         let mut order_sell = ArrayTrait::new();
         order_sell.append(Orderbook::QuantityPricePair { quantity: 10, price: 0 });
         order_sell.append(Orderbook::QuantityPricePair { quantity: 20, price: 2 });
-        order_sell.append(Orderbook::QuantityPricePair { quantity: 50, price: 5 });
+        order_sell.append(Orderbook::QuantityPricePair { quantity: 50, price: 4 });
 
         Orderbook::submit_sell(order_sell);
 
@@ -262,7 +262,7 @@ mod tests {
         assert(Orderbook::view_sell_orders_at(1) == 10, 'Submission of sell failed2');
         assert(Orderbook::view_sell_orders_at(2) == 20, 'Submission of sell failed3');
         assert(Orderbook::view_sell_orders_at(3) == 20, 'Submission of sell failed4');
-        assert(Orderbook::view_sell_orders_at(4) == 20, 'Submission of sell failed5');
+        assert(Orderbook::view_sell_orders_at(4) == 50, 'Submission of sell failed5');
         assert(Orderbook::view_sell_orders_at(5) == 50, 'Submission of sell failed6');
 
         let result = Orderbook::settle();
