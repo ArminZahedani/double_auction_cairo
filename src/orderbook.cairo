@@ -19,8 +19,10 @@ mod Orderbook {
         max_price: u64,
         buys_agg: LegacyMap::<u64, u64>,
         sells_agg: LegacyMap::<u64, u64>,
-        buy_orders: LegacyMap::<(ContractAddress, u64), u64>, //first u64 is price, second is quantity.
-        sell_orders: LegacyMap::<(ContractAddress, u64), u64>, //first u64 is price, second is quantity.
+        buy_orders: LegacyMap::<(ContractAddress, u64),
+        u64>, //first u64 is price, second is quantity.
+        sell_orders: LegacyMap::<(ContractAddress, u64),
+        u64>, //first u64 is price, second is quantity.
     }
 
     #[constructor]
@@ -55,14 +57,14 @@ mod Orderbook {
         let mut i = 0;
 
         if length_order != 1 {
-        loop {
-            if i == length_order - 2 {
-                break ();
-            }
-            //commented out since it currently does not work.
-            //assert(order.at(i).quantity.clone() >= order.at(i + 1).quantity.clone(), 'Order formatted wrong');
-            //assert(*order.clone().at(i).price < *order.clone().at(i + 1).price, 'Order formatted wrong');
-            i += 1;
+            loop {
+                if i == length_order - 2 {
+                    break ();
+                }
+                //commented out since it currently does not work.
+                //assert(order.at(i).quantity.clone() >= order.at(i + 1).quantity.clone(), 'Order formatted wrong');
+                //assert(*order.clone().at(i).price < *order.clone().at(i + 1).price, 'Order formatted wrong');
+                i += 1;
             }
         }
 
@@ -73,7 +75,7 @@ mod Orderbook {
         loop {
             if selector < length_order - 1 { //ensure that selector did not reach the end already.
                 if *order.at(selector).price < cur_price {
-                selector += 1;
+                    selector += 1;
                 }
             }
 
@@ -104,13 +106,13 @@ mod Orderbook {
         let mut i = 0;
 
         if length_order != 1 {
-        loop {
-            if i == length_order - 2 {
-                break ();
-            }
-            //assert(order.at(i).quantity.clone() <= order.at(i + 1).quantity.clone(), 'Order formatted wrong');
-            //assert(*order.clone().at(i).price < *order.clone().at(i + 1).price, 'Order formatted wrong');
-            i += 1;
+            loop {
+                if i == length_order - 2 {
+                    break ();
+                }
+                //assert(order.at(i).quantity.clone() <= order.at(i + 1).quantity.clone(), 'Order formatted wrong');
+                //assert(*order.clone().at(i).price < *order.clone().at(i + 1).price, 'Order formatted wrong');
+                i += 1;
             }
         }
 
@@ -121,7 +123,7 @@ mod Orderbook {
         loop {
             if selector < length_order - 1 {
                 if *order.at(selector + 1).price <= cur_price {
-                selector += 1;
+                    selector += 1;
                 }
             }
             let quantity = *order.at(selector).quantity;
@@ -142,7 +144,7 @@ mod Orderbook {
     #[external]
     fn cancel_buy(price: u64) {
         let sender = get_caller_address();
-        
+
         let quantity = buy_orders::read((sender, price));
         let quantity_agg = buys_agg::read(price);
 
@@ -153,7 +155,7 @@ mod Orderbook {
     #[external]
     fn cancel_sell(price: u64) {
         let sender = get_caller_address();
-        
+
         let quantity = sell_orders::read((sender, price));
         let quantity_agg = sells_agg::read(price);
 
@@ -174,16 +176,16 @@ mod Orderbook {
         };
         let quantity = sells_agg::read(mcp);
 
-        let mcp = QuantityPricePair {quantity: quantity, price: mcp};
+        let mcp = QuantityPricePair { quantity: quantity, price: mcp };
 
         announce_price(mcp);
-        
+
         mcp
     }
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::Orderbook;
     use starknet::testing::set_caller_address;
     use starknet::ContractAddress;
@@ -199,9 +201,9 @@ mod tests{
         set_caller_address(account);
 
         let mut order = ArrayTrait::new();
-        order.append(Orderbook::QuantityPricePair {quantity: 150, price: 0});
-        order.append(Orderbook::QuantityPricePair {quantity: 100, price: 3});
-        order.append(Orderbook::QuantityPricePair {quantity: 50, price: 5});
+        order.append(Orderbook::QuantityPricePair { quantity: 150, price: 0 });
+        order.append(Orderbook::QuantityPricePair { quantity: 100, price: 3 });
+        order.append(Orderbook::QuantityPricePair { quantity: 50, price: 5 });
 
         Orderbook::submit_buy(order);
         assert(Orderbook::view_buy_orders_at(0) == 150, 'Submission of buy failed1');
@@ -213,33 +215,33 @@ mod tests{
     }
 
     #[test]
-     #[available_gas(200000000)]
-     #[should_panic(expected:('Submission of buy failed',))]
-         fn test_buy_submittable_fail() {
-         Orderbook::constructor(5);
-         let account = contract_address_const::<1>();
-         set_caller_address(account);
-
-        let mut order = ArrayTrait::new();
-        order.append(Orderbook::QuantityPricePair {quantity: 50, price: 5});
-
-         Orderbook::submit_buy(order);
-
-         assert(Orderbook::view_buy_orders_at(5) == 49, 'Submission of buy failed');
-     }
-
-     #[test]
-     #[available_gas(2000000000)]
-     fn settle_test() {
+    #[available_gas(200000000)]
+    #[should_panic(expected: ('Submission of buy failed', ))]
+    fn test_buy_submittable_fail() {
         Orderbook::constructor(5);
         let account = contract_address_const::<1>();
         set_caller_address(account);
 
         let mut order = ArrayTrait::new();
-        order.append(Orderbook::QuantityPricePair {quantity: 100, price: 0});
-        order.append(Orderbook::QuantityPricePair {quantity: 50, price: 3});
-        order.append(Orderbook::QuantityPricePair {quantity: 10, price: 5});
-        
+        order.append(Orderbook::QuantityPricePair { quantity: 50, price: 5 });
+
+        Orderbook::submit_buy(order);
+
+        assert(Orderbook::view_buy_orders_at(5) == 49, 'Submission of buy failed');
+    }
+
+    #[test]
+    #[available_gas(2000000000)]
+    fn settle_test() {
+        Orderbook::constructor(5);
+        let account = contract_address_const::<1>();
+        set_caller_address(account);
+
+        let mut order = ArrayTrait::new();
+        order.append(Orderbook::QuantityPricePair { quantity: 100, price: 0 });
+        order.append(Orderbook::QuantityPricePair { quantity: 50, price: 3 });
+        order.append(Orderbook::QuantityPricePair { quantity: 10, price: 5 });
+
         Orderbook::submit_buy(order);
 
         assert(Orderbook::view_buy_orders_at(0) == 100, 'Submission of buy failed12');
@@ -250,9 +252,9 @@ mod tests{
         assert(Orderbook::view_buy_orders_at(5) == 10, 'Submission of buy failed6');
 
         let mut order_sell = ArrayTrait::new();
-        order_sell.append(Orderbook::QuantityPricePair {quantity: 10, price: 0});
-        order_sell.append(Orderbook::QuantityPricePair {quantity: 20, price: 2});
-        order_sell.append(Orderbook::QuantityPricePair {quantity: 50, price: 5});
+        order_sell.append(Orderbook::QuantityPricePair { quantity: 10, price: 0 });
+        order_sell.append(Orderbook::QuantityPricePair { quantity: 20, price: 2 });
+        order_sell.append(Orderbook::QuantityPricePair { quantity: 50, price: 5 });
 
         Orderbook::submit_sell(order_sell);
 
@@ -265,8 +267,8 @@ mod tests{
 
         let result = Orderbook::settle();
 
-        let expected_result = Orderbook::QuantityPricePair {quantity: 20, price: 3};
+        let expected_result = Orderbook::QuantityPricePair { quantity: 20, price: 3 };
 
         assert(result == expected_result, 'Wrong MCP');
-     }
+    }
 }
