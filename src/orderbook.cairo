@@ -144,25 +144,41 @@ mod Orderbook {
 
     //Retrieve the buy at the price that was made previously, and cancel it by setting it to 0 again.
     #[external]
-    fn cancel_buy(price: u64) {
+    fn cancel_buy() {
         let sender = get_caller_address();
 
-        let quantity = buy_orders::read((sender, price));
-        let quantity_agg = buys_agg::read(price);
+        let mut i = 0;
+        loop {
+            if i > max_price::read() {
+                break ();
+            }
+            let quantity = buy_orders::read((sender, i));
+            let quantity_agg = buys_agg::read(i);
 
-        buys_agg::write(price, quantity_agg - quantity);
-        buy_orders::write((sender, price), 0);
+            buys_agg::write(i, quantity_agg - quantity);
+            buy_orders::write((sender, i), 0);
+
+            i += 1;
+        }
     }
 
     #[external]
-    fn cancel_sell(price: u64) {
+    fn cancel_sell() {
         let sender = get_caller_address();
 
-        let quantity = sell_orders::read((sender, price));
-        let quantity_agg = sells_agg::read(price);
+        let mut i = 0;
+        loop {
+            if i > max_price::read() {
+                break ();
+            }
+            let quantity = sell_orders::read((sender, i));
+            let quantity_agg = sells_agg::read(i);
 
-        sells_agg::write(price, quantity_agg - quantity);
-        sell_orders::write((sender, price), 0);
+            sells_agg::write(i, quantity_agg - quantity);
+            sell_orders::write((sender, i), 0);
+
+            i += 1;
+        }
     }
 
     //currently portrayed as function, should run periodically
@@ -236,6 +252,33 @@ mod tests {
     }
 
     #[test]
+    #[available_gas(200000000)]
+    fn test_buy_cancable() {
+        let settler = contract_address_const::<1>();
+        Orderbook::constructor(5, settler);
+        set_caller_address(settler);
+
+        let mut order = ArrayTrait::new();
+        order.append(Orderbook::QuantityPricePair { quantity: 100, price: 2 });
+        order.append(Orderbook::QuantityPricePair { quantity: 50, price: 5 });
+
+        Orderbook::submit_buy(order);
+
+        assert(Orderbook::view_buy_orders_at(5) == 50, 'Submission of buy failed1');
+
+        Orderbook::cancel_buy();
+
+        assert(Orderbook::view_buy_orders_at(0) == 0, 'Cancel of buy failed2');
+        assert(Orderbook::view_buy_orders_at(1) == 0, 'Cancel of buy failed3');
+        assert(Orderbook::view_buy_orders_at(2) == 0, 'Cancel of buy failed4');
+        assert(Orderbook::view_buy_orders_at(3) == 0, 'Cancel of buy failed5');
+        assert(Orderbook::view_buy_orders_at(4) == 0, 'Cancel of buy failed6');
+        assert(Orderbook::view_buy_orders_at(5) == 0, 'Cancel of buy failed7');
+
+        assert(Orderbook::view_buy_orders_at(0) == 0, 'Cancel of buy failed8');
+    }
+
+    #[test]
     #[available_gas(2000000000)]
     fn settle_test() {
         let settler = contract_address_const::<1>();
@@ -278,7 +321,7 @@ mod tests {
     }
     #[test]
     #[available_gas(20000000)]
-    #[should_panic(expected:('Incorrect caller', ))]
+    #[should_panic(expected: ('Incorrect caller', ))]
     fn settle_incorrect_caller() {
         let settler = contract_address_const::<1>();
         Orderbook::constructor(5, settler);
